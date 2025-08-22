@@ -19,13 +19,29 @@ export function Login() {
       email: formData.email,
       password: formData.password,
     };
-    console.log(data);
+    try {
+      const res = await SignIn(data);
 
-    const res = await SignIn(data);
-    console.log(res);
+      if (res.success && res.data) {
+        setFormData({
+          email: "",
+          password: "",
+        });
+
+        localStorage.setItem("token", res.data.authToken);
+
+        navegate("/login");
+      } else {
+        alert(res.message);
+        return;
+      }
+    } catch (error) {
+      alert("Erro ao cadastrar usuário");
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
     navegate("/chats");
-
-    setLoading(false);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +96,7 @@ export function Login() {
               variant="standard"
               value={formData.password}
               onChange={handleInputChange}
+              type="password"
             />
           </Box>
 

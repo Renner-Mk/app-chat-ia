@@ -1,16 +1,14 @@
 import { AxiosError } from "axios";
-import type { ILogin, IRegister } from "../types/auth";
 import { api } from "./http-ws-config";
-import type { ApiResp, LoginResponse } from "../types";
+import type { CreateChatResp, GetChatsResp } from "../types";
 
-export async function SignIn(data: ILogin): Promise<LoginResponse> {
+export async function GetChats(token: string): Promise<GetChatsResp> {
   try {
-    const response = await api.post<LoginResponse>("/login", {
-      email: data.email,
-      password: data.password,
+    const response = await api.get<GetChatsResp>("/chats", {
+      headers: { Authorization: token },
     });
 
-    if (!response.data.success) throw new Error("erro");
+    if (!response.data.success) throw new Error(response.data.message);
 
     return response.data;
   } catch (error) {
@@ -29,16 +27,15 @@ export async function SignIn(data: ILogin): Promise<LoginResponse> {
   }
 }
 
-export async function SignUp(data: IRegister): Promise<ApiResp> {
+export async function CreateChat(token: string): Promise<CreateChatResp> {
   try {
-    const response: ApiResp = await api.post("/register", {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      password: data.password,
+    const response = await api.post<CreateChatResp>("/chats", {
+      headers: { Authorization: token },
     });
 
-    return response;
+    if (!response.data.success) throw new Error(response.data.message);
+
+    return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
       return {

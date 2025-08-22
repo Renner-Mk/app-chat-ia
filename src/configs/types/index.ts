@@ -5,10 +5,39 @@ export interface ApiResponse<T> {
   data?: T;
 }
 
-export type UserRegisterResponse = ApiResponse<ApiResp>;
+export type LoginResponse = ApiResponse<LoginResp>;
+export type GetChatsResp = ApiResponse<Chat[]>;
+export type CreateChatResp = ApiResponse<Chat>;
 
 export interface ApiResp {
   success: boolean;
   code: number;
   message: string;
+}
+
+export interface LoginResp {
+  authToken: string;
+  authUser: DataUser;
+}
+
+interface DataUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface Chat {
+  id: string;
+  userId: string;
+  updatedAt: Date;
+}
+
+export interface Message {
+  chatId: string;
+  content: WSMessage[];
+}
+
+export interface WSMessage {
+  sender: string;
+  content: string;
 }
