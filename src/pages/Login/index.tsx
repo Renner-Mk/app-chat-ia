@@ -19,6 +19,7 @@ export function Login() {
       email: formData.email,
       password: formData.password,
     };
+
     try {
       const res = await SignIn(data);
 
@@ -41,7 +42,7 @@ export function Login() {
     } finally {
       setLoading(false);
     }
-    navegate("/chats");
+    navegate("/");
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -106,7 +107,7 @@ export function Login() {
             loadingPosition="start"
             type="submit"
           >
-            Loading
+            Login
           </Button>
         </Box>
       </Container>

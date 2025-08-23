@@ -189,7 +189,7 @@ export function Register() {
             loadingPosition="start"
             type="submit"
           >
-            Loading
+            Register
           </Button>
         </Box>
       </Container>
