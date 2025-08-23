@@ -2,7 +2,12 @@ import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import type { Chat, Message } from "../../configs/types";
 import { useNavigate } from "react-router";
-import { GetChats } from "../../configs/services/chats.service";
+import {
+  CreateChat,
+  DeleteChat,
+  GetChats,
+} from "../../configs/services/chats.service";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { createWs } from "../../configs/services/http-ws-config";
 
 export function Home() {
@@ -28,7 +33,7 @@ export function Home() {
     const funcFeacth = async () => {
       // setLoading(true);
       try {
-        const resp = await GetChats(token!);
+        const resp = await GetChats(token);
         console.log(resp);
 
         if (!resp.data) throw new Error(resp.message);
@@ -60,6 +65,7 @@ export function Home() {
       chatId: "",
       content: [],
     });
+    setInputChat("");
 
     ws.current.send(
       JSON.stringify({
@@ -75,10 +81,12 @@ export function Home() {
       ws.current.onmessage = (event) => {
         const message: Message = JSON.parse(event.data);
 
-        // setMessages((prev) => [...prev, message.content]);
         setMessages((prev) => ({
-          chatId: prev.chatId,
-          content: [...prev.content, ...message.content],
+          chatId: selectedChat,
+          content:
+            message.content.length > 0
+              ? [...prev.content, ...message.content]
+              : prev.content,
         }));
       };
     };
@@ -96,6 +104,11 @@ export function Home() {
         })
       );
 
+      setMessages((prev) => ({
+        chatId: selectedChat,
+        content: [...prev.content, ...[{ sender: "user", content: inputChat }]],
+      }));
+
       setInputChat(""); // limpa input
     }
   };
@@ -104,7 +117,37 @@ export function Home() {
     setSelectedChat(chatId);
   };
 
-  const handleNewChat = () => {};
+  const handleNewChat = async () => {
+    try {
+      const resp = await CreateChat(token);
+
+      if (!resp.data) throw new Error(resp.message);
+
+      setChatsData((prev) => [...prev, resp.data!]);
+    } catch (error) {
+      // setLoading(false);
+      console.log(error);
+    } finally {
+      // setLoading(false);
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      const resp = await DeleteChat(token, chatId);
+
+      if (!resp.data) throw new Error(resp.message);
+
+      setChatsData((prevChats) =>
+        prevChats.filter((chat) => chat.id !== chatId)
+      );
+    } catch (error) {
+      // setLoading(false);
+      console.log(error);
+    } finally {
+      // setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -128,15 +171,33 @@ export function Home() {
               Home
             </Button>
             {chatsData.map((chat) => (
-              <Button
+              <Box
                 key={chat.id}
-                fullWidth
-                // disabled={isConnected}
-                onClick={() => handleOnclick(chat.id)}
-                variant={selectedChat === chat.id ? "contained" : "text"}
+                sx={{
+                  display: "flex",
+                }}
               >
-                Conversa
-              </Button>
+                <Button
+                  fullWidth
+                  // disabled={isConnected}
+                  onClick={() => handleOnclick(chat.id)}
+                  variant={selectedChat === chat.id ? "contained" : "text"}
+                >
+                  Conversa
+                </Button>
+                <Box
+                  sx={{
+                    display: "flex",
+                    cursor: "pointer",
+                    justifyContent: "center",
+                    alignContent: "center",
+                  }}
+                >
+                  <DeleteOutlineOutlinedIcon
+                    onClick={() => handleDeleteChat(chat.id)}
+                  />
+                </Box>
+              </Box>
             ))}
           </Box>
 

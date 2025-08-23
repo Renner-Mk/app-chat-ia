@@ -1,7 +1,7 @@
-export function Error() {
+export function ErrorPage() {
   return (
     <>
-      <h1>Error</h1>
+      <h1>Colocar elemento 404</h1>
     </>
   );
 }
