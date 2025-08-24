@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 import type { ILogin, IRegister } from "../types/auth";
-import { api } from "./http-ws-config";
+import api from "./http-ws-config";
 import type { LoginResponse, RegisterResp } from "../types";
 
 export async function SignIn(data: ILogin): Promise<LoginResponse> {

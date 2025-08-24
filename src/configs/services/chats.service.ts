@@ -1,5 +1,5 @@
 import { AxiosError } from "axios";
-import { api } from "./http-ws-config";
+import api from "./http-ws-config";
 import type { CreateChatResp, GetChatsResp } from "../types";
 
 export async function GetChats(token: string): Promise<GetChatsResp> {

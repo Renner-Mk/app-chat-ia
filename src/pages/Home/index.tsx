@@ -24,7 +24,7 @@ import "./index.css";
 import MenuIcon from "@mui/icons-material/Menu";
 
 export function Home() {
-  const navegate = useNavigate();
+  const navigate = useNavigate();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [chatsData, setChatsData] = useState<Chat[]>([]);
@@ -36,8 +36,7 @@ export function Home() {
   });
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const ws = useRef<WebSocket | null>(null);
-  const token = localStorage.getItem("token");
-
+  const [token, setToken] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -112,12 +111,17 @@ export function Home() {
     </Box>
   );
 
-  if (!token) {
-    navegate("/login");
-    throw new Error("Token invalido");
-  }
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    if (!t) {
+      navigate("/login");
+      return;
+    }
+    setToken(t);
+  }, [navigate]);
 
   useEffect(() => {
+    if (!token) return;
     const funcFeacth = async () => {
       // setLoading(true);
       try {
@@ -136,6 +140,7 @@ export function Home() {
   }, [token]);
 
   useEffect(() => {
+    if (!token) return;
     setIsConnected(false);
     ws.current = createWs(token);
 
@@ -229,6 +234,7 @@ export function Home() {
     if (!inputChat.trim()) return;
 
     try {
+      if (!token) return;
       const resp = await CreateChat(token);
       if (!resp.data) throw new Error(resp.message);
       setSelectedChat(resp.data.id);
@@ -265,6 +271,7 @@ export function Home() {
 
   const handleDeleteChat = async (chatId: string) => {
     try {
+      if (!token) return;
       const resp = await DeleteChat(token, chatId);
 
       if (!resp.data) throw new Error(resp.message);
