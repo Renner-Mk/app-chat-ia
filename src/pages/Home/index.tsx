@@ -259,10 +259,6 @@ export function Home() {
 
         setInputChat("");
       }
-
-      // setTimeout(() => {
-      //   setSelectedChat(resp.data!.id);
-      // }, 500);
     } catch (error) {
       setLoading(false);
       console.log(error);
@@ -360,7 +356,7 @@ export function Home() {
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
-                padding: "16px 0",
+                padding: "16px 0 40px ",
               }}
             >
               <Box flex={1}>
