@@ -87,7 +87,6 @@ export function Register() {
         </Typography>
 
         <Box component="form" onSubmit={submit}>
-          {/* First Name */}
           <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
@@ -100,7 +99,6 @@ export function Register() {
             />
           </Box>
 
-          {/* Last Name */}
           <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
@@ -113,7 +111,6 @@ export function Register() {
             />
           </Box>
 
-          {/* Email */}
           <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
@@ -126,7 +123,6 @@ export function Register() {
             />
           </Box>
 
-          {/* Password */}
           <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
@@ -142,7 +138,6 @@ export function Register() {
             />
           </Box>
 
-          {/* Confirm Password */}
           <Box sx={{ display: "flex", alignItems: "flex-end", mb: 3 }}>
             <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
@@ -158,7 +153,6 @@ export function Register() {
             />
           </Box>
 
-          {/* Submit Button */}
           <Button
             type="submit"
             variant="contained"
@@ -166,6 +160,17 @@ export function Register() {
             disabled={loading}
           >
             {loading ? "Carregando..." : "Register"}
+          </Button>
+          <Button
+            disabled={loading}
+            variant="outlined"
+            fullWidth
+            onClick={() => navigate("/login")}
+            sx={{
+              mt: "15px",
+            }}
+          >
+            Fazer Login
           </Button>
         </Box>
       </Container>

@@ -99,6 +99,17 @@ export function Login() {
           >
             {loading ? "Carregando..." : "Entrar"}
           </Button>
+          <Button
+            disabled={loading}
+            variant="outlined"
+            fullWidth
+            onClick={() => navigate("/register")}
+            sx={{
+              mt: "15px",
+            }}
+          >
+            Criar conta
+          </Button>
         </Box>
       </Container>
     </>
