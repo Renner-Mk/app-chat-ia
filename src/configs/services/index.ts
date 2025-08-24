@@ -1,7 +1,7 @@
 import { AxiosError } from "axios";
 import type { ILogin, IRegister } from "../types/auth";
 import { api } from "./http-ws-config";
-import type { ApiResp, LoginResponse } from "../types";
+import type { LoginResponse, RegisterResp } from "../types";
 
 export async function SignIn(data: ILogin): Promise<LoginResponse> {
   try {
@@ -29,16 +29,16 @@ export async function SignIn(data: ILogin): Promise<LoginResponse> {
   }
 }
 
-export async function SignUp(data: IRegister): Promise<ApiResp> {
+export async function SignUp(data: IRegister): Promise<RegisterResp> {
   try {
-    const response: ApiResp = await api.post("/register", {
+    const response = await api.post<RegisterResp>("/register", {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
       password: data.password,
     });
 
-    return response;
+    return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
       return {

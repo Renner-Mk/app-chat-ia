@@ -41,3 +41,18 @@
   50%,
   100% { opacity: 1; }
 }
+
+/* Para mobile, remover margem */
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Personalização do overlay do MUI (opcional) */
+.MuiBackdrop-root {
+  background-color: rgba(0, 0, 0, 0.5);
+}

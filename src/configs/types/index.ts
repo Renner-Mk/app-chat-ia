@@ -6,6 +6,7 @@ export interface ApiResponse<T> {
 }
 
 export type LoginResponse = ApiResponse<LoginResp>;
+export type RegisterResp = ApiResponse<ApiResp>;
 export type GetChatsResp = ApiResponse<Chat[]>;
 export type CreateChatResp = ApiResponse<Chat>;
 

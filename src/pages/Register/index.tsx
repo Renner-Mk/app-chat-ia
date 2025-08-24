@@ -1,13 +1,13 @@
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import LockPersonIcon from "@mui/icons-material/LockPerson";
-import { Box, Button, Container, TextField } from "@mui/material";
+import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import type { IRegister } from "../../configs/types/auth";
 import { SignUp } from "../../configs/services";
 import { useNavigate } from "react-router";
 
 export function Register() {
-  const navegate = useNavigate();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,9 +38,9 @@ export function Register() {
     };
 
     try {
-      const userRegister = await SignUp(data);
+      const res = await SignUp(data);
 
-      if (userRegister.success) {
+      if (res.success) {
         setFormData({
           firstName: "",
           lastName: "",
@@ -48,17 +48,14 @@ export function Register() {
           password: "",
           passwordConfirm: "",
         });
-
-        alert("Usuario cadastrado");
-
-        navegate("/login");
+        alert("Usuário cadastrado com sucesso!");
+        navigate("/login");
       } else {
-        alert(userRegister.message);
-        return;
+        alert(res.message);
       }
-    } catch (error) {
+    } catch (err) {
+      console.log(err);
       alert("Erro ao cadastrar usuário");
-      console.log(error);
     } finally {
       setLoading(false);
     }
@@ -78,118 +75,97 @@ export function Register() {
       <Container
         maxWidth="xs"
         sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          height: "100vh",
           textAlign: "center",
         }}
       >
+        <Typography variant="h4" mb={4}>
+          Register
+        </Typography>
+
         <Box component="form" onSubmit={submit}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
+          {/* First Name */}
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-name"
               name="firstName"
-              label="Name"
+              label="First Name"
               variant="standard"
+              fullWidth
               value={formData.firstName}
               onChange={handleInputChange}
             />
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
-            <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
+          {/* Last Name */}
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
+            <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-lastName"
               name="lastName"
               label="Last Name"
               variant="standard"
+              fullWidth
               value={formData.lastName}
               onChange={handleInputChange}
             />
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
-            <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
+          {/* Email */}
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
+            <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-email"
               name="email"
               label="Email"
               variant="standard"
+              fullWidth
               value={formData.email}
               onChange={handleInputChange}
             />
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
+          {/* Password */}
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-password"
               name="password"
               label="Password"
+              type="password"
               variant="standard"
+              fullWidth
               value={formData.password}
               onChange={handleInputChange}
-              type="password"
               error={!!error}
               helperText={error}
             />
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
+          {/* Confirm Password */}
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 3 }}>
             <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-passwordConfirm"
               name="passwordConfirm"
               label="Confirm Password"
+              type="password"
               variant="standard"
+              fullWidth
               value={formData.passwordConfirm}
               onChange={handleInputChange}
-              type="password"
               error={!!error}
               helperText={error}
             />
           </Box>
 
+          {/* Submit Button */}
           <Button
-            loading={loading}
-            variant="contained"
-            loadingPosition="start"
             type="submit"
+            variant="contained"
+            fullWidth
+            disabled={loading}
           >
-            Register
+            {loading ? "Carregando..." : "Register"}
           </Button>
         </Box>
       </Container>

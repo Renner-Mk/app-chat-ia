@@ -2,9 +2,12 @@ import {
   Box,
   Button,
   Container,
+  Drawer,
   IconButton,
   Paper,
   TextField,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import ReactMarkdown from "react-markdown";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +21,7 @@ import {
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { createWs } from "../../configs/services/http-ws-config";
 import "./index.css";
+import MenuIcon from "@mui/icons-material/Menu";
 
 export function Home() {
   const navegate = useNavigate();
@@ -30,11 +34,84 @@ export function Home() {
     chatId: "",
     content: [],
   });
-
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const ws = useRef<WebSocket | null>(null);
-
   const token = localStorage.getItem("token");
+
+  const [open, setOpen] = useState(false);
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+
+  const toggleDrawer = (state: boolean) => () => setOpen(state);
+
+  const drawerContent = (
+    <Box
+      sx={{
+        width: 250,
+        bgcolor: "#1f2937",
+        height: "100%",
+        color: "white",
+        display: "flex",
+        flexDirection: "column",
+        p: 1,
+        boxSizing: "border-box",
+      }}
+    >
+      <Box
+        sx={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <IconButton
+          color="inherit"
+          onClick={toggleDrawer(false)}
+          sx={{ display: "block" }}
+        >
+          <MenuIcon />
+        </IconButton>
+      </Box>
+      <Button
+        fullWidth
+        variant={selectedChat ? "text" : "contained"}
+        onClick={() => {
+          setSelectedChat("");
+          if (!isDesktop) setOpen(false);
+        }}
+      >
+        Criar novo chat
+      </Button>
+      {chatsData.map((chat) => (
+        <Box
+          key={chat.id}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <Button
+            fullWidth
+            disabled={!isConnected}
+            onClick={() => {
+              handleSelectChat(chat.id);
+              if (!isDesktop) setOpen(false);
+            }}
+            variant={selectedChat === chat.id ? "contained" : "text"}
+          >
+            Novo Chat
+          </Button>
+          <IconButton
+            disabled={!isConnected}
+            onClick={() => handleDeleteChat(chat.id)}
+          >
+            <DeleteOutlineOutlinedIcon sx={{ color: "white" }} />
+          </IconButton>
+        </Box>
+      ))}
+    </Box>
+  );
+
   if (!token) {
     navegate("/login");
     throw new Error("Token invalido");
@@ -45,16 +122,13 @@ export function Home() {
       // setLoading(true);
       try {
         const resp = await GetChats(token);
-        console.log(resp);
 
-        if (!resp.data) throw new Error(resp.message);
-
-        setChatsData(resp.data);
+        if (resp.data) {
+          setChatsData(resp.data);
+        }
       } catch (error) {
         // setLoading(false);
         console.log(error);
-      } finally {
-        // setLoading(false);
       }
     };
 
@@ -77,13 +151,22 @@ export function Home() {
   }, [token]);
 
   useEffect(() => {
-    if (!selectedChat || ws.current?.readyState !== WebSocket.OPEN) return;
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (!selectedChat || ws.current?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
     setLoading(true);
-    setMessages({
-      chatId: "",
-      content: [],
-    });
-    setInputChat("");
+
+    if (messages.chatId !== selectedChat) {
+      setMessages({
+        chatId: "",
+        content: [],
+      });
+    }
 
     ws.current.send(
       JSON.stringify({
@@ -92,32 +175,26 @@ export function Home() {
         content: "",
       })
     );
-
-    const handleChat = () => {
-      if (!selectedChat || ws.current?.readyState !== WebSocket.OPEN) return;
-
-      ws.current.onmessage = (event) => {
-        const message: Message = JSON.parse(event.data);
-        console.log(message);
-
-        setMessages((prev) => ({
-          chatId: selectedChat,
-          content:
-            message.content.length > 0
-              ? [...prev.content, ...message.content]
-              : prev.content,
-        }));
-
-        setLoading(false);
-      };
-    };
-
-    handleChat();
   }, [selectedChat]);
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (ws.current?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    ws.current.onmessage = (event) => {
+      const message: Message = JSON.parse(event.data);
+
+      if (message.chatId === selectedChat && message.content.length > 0) {
+        setMessages((prev) => ({
+          chatId: prev.chatId,
+          content: [...prev.content, ...message.content],
+        }));
+
+        setLoading(false);
+      }
+    };
+  }, [selectedChat]);
 
   const sendMessage = () => {
     setLoading(true);
@@ -139,18 +216,26 @@ export function Home() {
     }
   };
 
-  const handleOnclick = (chatId: string): void => {
+  const handleSelectChat = (chatId: string): void => {
     setSelectedChat(chatId);
+
+    setMessages({
+      chatId,
+      content: [],
+    });
   };
 
   const handleNewChat = async () => {
+    if (!inputChat.trim()) return;
+
     try {
       const resp = await CreateChat(token);
       if (!resp.data) throw new Error(resp.message);
-      // setSelectedChat(resp.data.id);
+      setSelectedChat(resp.data.id);
 
       setChatsData((prev) => [...(resp.data ? [resp.data] : []), ...prev]);
 
+      setLoading(true);
       if (ws.current?.readyState === WebSocket.OPEN && resp.data.id) {
         setLoading(true);
         ws.current.send(
@@ -161,17 +246,20 @@ export function Home() {
           })
         );
 
+        setMessages({
+          chatId: resp.data.id,
+          content: [{ sender: "user", content: inputChat }],
+        });
+
         setInputChat("");
       }
 
-      setTimeout(() => {
-        setSelectedChat(resp.data!.id);
-      }, 500);
+      // setTimeout(() => {
+      //   setSelectedChat(resp.data!.id);
+      // }, 500);
     } catch (error) {
       setLoading(false);
       console.log(error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -191,172 +279,230 @@ export function Home() {
   };
 
   return (
-    <>
-      <Container>
-        <Box display="flex" height="100vh">
-          <Box
-            width="250px"
-            bgcolor="#f5f5f5"
-            p={2}
-            borderRight="1px solid #ccc"
-            overflow="auto"
+    <Box
+      height="100vh"
+      className="content"
+      sx={{
+        display: "flex",
+      }}
+    >
+      {!isDesktop && (
+        <Box sx={{ padding: "8px 5px", display: open ? "none" : "block" }}>
+          <IconButton
+            color="inherit"
+            onClick={toggleDrawer(true)}
+            sx={{ position: "relative", top: 10, left: 10, zIndex: 1300 }}
           >
-            <Button
-              fullWidth
-              variant={selectedChat ? "text" : "contained"}
-              onClick={() => {
-                setSelectedChat("");
+            <MenuIcon />
+          </IconButton>
+        </Box>
+      )}
+
+      {!isDesktop && (
+        <Drawer
+          variant="temporary"
+          open={open}
+          onClose={toggleDrawer(false)}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          sx={{
+            "& .MuiDrawer-paper": {
+              width: 250,
+              backgroundColor: "#1f2937",
+              color: "#fff",
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+
+      {isDesktop && (
+        <Drawer
+          variant="permanent"
+          open
+          sx={{
+            boxSizing: "border-box",
+            "& .MuiDrawer-paper": {
+              width: 250,
+              position: "relative",
+              backgroundColor: "#1f2937",
+              color: "#fff",
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+
+      <Box
+        width={"100%"}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: { md: "100vh", xs: "calc(100vh - 56px)" },
+        }}
+      >
+        {selectedChat ? (
+          <>
+            <Container
+              maxWidth="md"
+              sx={{
+                flex: 1,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                padding: "16px 0",
               }}
             >
-              Home
-            </Button>
-            {chatsData.map((chat) => (
-              <Box
-                key={chat.id}
-                sx={{
-                  display: "flex",
-                }}
-              >
-                <Button
-                  fullWidth
-                  disabled={!isConnected}
-                  onClick={() => handleOnclick(chat.id)}
-                  variant={selectedChat === chat.id ? "contained" : "text"}
-                >
-                  Conversa
-                </Button>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignContent: "center",
-                  }}
-                >
-                  <IconButton disabled={!isConnected}>
-                    <DeleteOutlineOutlinedIcon
-                      onClick={() => handleDeleteChat(chat.id)}
-                    />
-                  </IconButton>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-
-          <Box
-            flex={1}
-            p={2}
-            display="flex"
-            flexDirection="column"
-            sx={{ justifyContent: "center" }}
-          >
-            {selectedChat ? (
-              <>
-                <Box
-                  flex={1}
-                  mt={0}
-                  overflow="auto"
-                  border="1px solid #ccc"
-                  p={3}
-                >
-                  {messages.content.map((msg, i) => {
-                    const isUser = msg.sender === "user";
-
-                    return (
-                      <Box
-                        key={i}
-                        display="flex"
-                        justifyContent={isUser ? "flex-end" : "flex-start"}
-                      >
-                        <Paper
-                          elevation={2}
-                          sx={{
-                            p: 1.5,
-                            maxWidth: "70%",
-                            minWidth: "15%",
-                            bgcolor: isUser ? "primary.main" : "grey.300",
-                            color: isUser ? "white" : "black",
-                            borderRadius: 2,
-                            borderTopLeftRadius: isUser ? 20 : 2,
-                            borderTopRightRadius: isUser ? 2 : 20,
-                            borderBottomLeftRadius: isUser ? 2 : 20,
-                            borderBottomRightRadius: isUser ? 20 : 2,
-                            mb: 1.3,
-                            textAlign: isUser ? "right" : "left",
-                            display: "flex",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              p: 0,
-                              m: 0,
-                              width: "fit-content",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                          </Box>
-                        </Paper>
-                      </Box>
-                    );
-                  })}
-                  {isLoading && (
+              <Box flex={1}>
+                {messages.content.map((msg, i) => {
+                  const isUser = msg.sender === "user";
+                  return (
                     <Box
+                      key={i}
                       display="flex"
-                      justifyContent="flex-start"
-                      mt={1}
-                      mb={2.5}
+                      justifyContent={isUser ? "flex-end" : "flex-start"}
+                      sx={{ padding: "0 11px" }}
                     >
                       <Paper
                         elevation={2}
                         sx={{
-                          p: 1,
-                          bgcolor: "grey.300",
-                          color: "black",
-                          borderRadius: "16px",
+                          p: 1.5,
+                          maxWidth: "70%",
+                          bgcolor: isUser ? "primary.main" : "grey.300",
+                          color: isUser ? "white" : "black",
+                          borderRadius: 2,
+                          borderTopLeftRadius: isUser ? 20 : 2,
+                          borderTopRightRadius: isUser ? 2 : 20,
+                          borderBottomLeftRadius: isUser ? 2 : 20,
+                          borderBottomRightRadius: isUser ? 20 : 2,
+                          mt: isUser ? 2.5 : 0,
+                          textAlign: "left",
+                          mb: 1,
+                          display: "flex",
+                          justifyContent: "center",
+                          overflowX: "hiden",
                         }}
                       >
-                        <span className="dot-flashing"></span>
+                        <Box
+                          sx={{
+                            p: 0,
+                            m: 0,
+                            width: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            wordBreak: "break-word",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </Box>
                       </Paper>
                     </Box>
-                  )}
-                  <div ref={endOfMessagesRef} />
-                </Box>
-                <Box mt={2} display="flex" gap={1}>
-                  <TextField
-                    fullWidth
-                    value={inputChat}
-                    onChange={(e) => setInputChat(e.target.value)}
-                    placeholder="Digite sua mensagem..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") sendMessage();
-                    }}
-                  />
-                  <Button variant="contained" onClick={sendMessage}>
-                    Enviar
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Box mt={2} display="flex" gap={1}>
-                <TextField
-                  fullWidth
-                  value={inputChat}
-                  onChange={(e) => setInputChat(e.target.value)}
-                  placeholder="Digite sua mensagem..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleNewChat();
-                  }}
-                />
-                <Button variant="contained" onClick={handleNewChat}>
-                  Enviar
-                </Button>
+                  );
+                })}
+                {isLoading && (
+                  <Box
+                    display="flex"
+                    justifyContent="flex-start"
+                    mt={1}
+                    mb={2.5}
+                  >
+                    <Paper
+                      elevation={2}
+                      sx={{
+                        p: 1,
+                        bgcolor: "grey.300",
+                        color: "black",
+                        borderRadius: "16px",
+                      }}
+                    >
+                      <span className="dot-flashing"></span>
+                    </Paper>
+                  </Box>
+                )}
+                <div ref={endOfMessagesRef} />
               </Box>
-            )}
+            </Container>
+
+            <Box
+              maxWidth="md"
+              sx={{
+                margin: "auto",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <TextField
+                fullWidth
+                multiline
+                minRows={1}
+                maxRows={5}
+                value={inputChat}
+                onChange={(e) => setInputChat(e.target.value)}
+                placeholder="Digite sua mensagem..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                slotProps={{
+                  input: {
+                    sx: {
+                      borderRadius: "35px",
+                      bgcolor: "white",
+                      padding: "16px 16px",
+                      transform: "translate(0, -60%)",
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </>
+        ) : (
+          <Box
+            maxWidth="md"
+            sx={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              margin: "auto",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <TextField
+              fullWidth
+              multiline
+              minRows={1}
+              maxRows={5}
+              value={inputChat}
+              onChange={(e) => setInputChat(e.target.value)}
+              placeholder="Digite sua mensagem..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleNewChat();
+                }
+              }}
+              slotProps={{
+                input: {
+                  sx: {
+                    borderRadius: "35px",
+                    bgcolor: "white",
+                    padding: "16px 16px",
+                    transform: "translate(0, -50%)",
+                  },
+                },
+              }}
+            />
           </Box>
-        </Box>
-      </Container>
-    </>
+        )}
+      </Box>
+    </Box>
   );
 }

@@ -1,13 +1,13 @@
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import LockPersonIcon from "@mui/icons-material/LockPerson";
-import { Box, Button, Container, TextField } from "@mui/material";
+import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import type { ILogin } from "../../configs/types/auth";
 import { SignIn } from "../../configs/services";
 import { useNavigate } from "react-router";
 
 export function Login() {
-  const navegate = useNavigate();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
 
@@ -24,25 +24,18 @@ export function Login() {
       const res = await SignIn(data);
 
       if (res.success && res.data) {
-        setFormData({
-          email: "",
-          password: "",
-        });
-
         localStorage.setItem("token", res.data.authToken);
-
-        navegate("/login");
+        setFormData({ email: "", password: "" });
+        navigate("/");
       } else {
         alert(res.message);
-        return;
       }
     } catch (error) {
-      alert("Erro ao cadastrar usuário");
       console.log(error);
+      alert("Erro ao fazer login");
     } finally {
       setLoading(false);
     }
-    navegate("/");
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -59,55 +52,52 @@ export function Login() {
       <Container
         maxWidth="xs"
         sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          height: "100vh",
           textAlign: "center",
         }}
       >
+        <Typography variant="h4" mb={4}>
+          Login
+        </Typography>
+
         <Box component="form" onSubmit={submit}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 2 }}>
             <AccountCircle sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-with-sx"
-              name="email"
               label="Email"
+              name="email"
               variant="standard"
+              fullWidth
               value={formData.email}
               onChange={handleInputChange}
             />
           </Box>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-end",
-              margin: 1,
-              justifyContent: "center",
-            }}
-          >
+
+          <Box sx={{ display: "flex", alignItems: "flex-end", mb: 3 }}>
             <LockPersonIcon sx={{ color: "action.active", mr: 1, my: 0.5 }} />
             <TextField
-              id="input-password"
+              label="Senha"
               name="password"
-              label="Password"
               variant="standard"
+              type="password"
+              fullWidth
               value={formData.password}
               onChange={handleInputChange}
-              type="password"
             />
           </Box>
 
           <Button
-            loading={loading}
-            variant="contained"
-            loadingPosition="start"
             type="submit"
+            variant="contained"
+            fullWidth
+            // disabled={loading}
+            loading={loading}
+            loadingPosition="start"
           >
-            Login
+            {loading ? "Carregando..." : "Entrar"}
           </Button>
         </Box>
       </Container>
