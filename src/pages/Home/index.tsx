@@ -472,15 +472,26 @@ export function Home() {
                   handleNewChat();
                 }
               }}
-              slotProps={{
-                input: {
-                  sx: {
-                    borderRadius: "35px",
-                    bgcolor: "white",
-                    padding: "16px 16px",
-                    transform: "translate(0, -50%)",
-                  },
+              sx={{
+                "& .MuiInputBase-root": {
+                  borderRadius: "35px",
+                  bgcolor: "white",
+                  padding: "0 16px",
+                  py: 1.5,
+                  transform: "translate(0, -50%)",
                 },
+                "& .MuiInputBase-input": {
+                  transform: "translate(0, -10%)",
+                },
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={handleNewChat}>
+                      <SearchIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
             />
           </Box>
