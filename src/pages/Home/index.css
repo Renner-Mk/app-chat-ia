@@ -43,7 +43,7 @@
 }
 
 /* Para mobile, remover margem */
-@media (max-width: 768px) {
+@media (max-width: 899px) {
   .content {
     margin-left: 0;
     box-sizing: border-box;

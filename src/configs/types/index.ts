@@ -42,3 +42,7 @@ export interface WSMessage {
   sender: string;
   content: string;
 }
+export interface WsProp {
+  token: string;
+  children: React.ReactNode;
+}

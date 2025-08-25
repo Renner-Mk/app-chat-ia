@@ -4,6 +4,7 @@ import {
   Container,
   Drawer,
   IconButton,
+  InputAdornment,
   Paper,
   TextField,
   useMediaQuery,
@@ -19,13 +20,14 @@ import {
   GetChats,
 } from "../../configs/services/chats.service";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import { createWs } from "../../configs/services/http-ws-config";
 import "./index.css";
 import MenuIcon from "@mui/icons-material/Menu";
+import SearchIcon from "@mui/icons-material/Search";
+import { useWs } from "../../context/useWs";
 
 export function Home() {
   const navigate = useNavigate();
-  const [isConnected, setIsConnected] = useState(false);
+  const { sendMessage, subscribe, isConnected, GetWsChats, NewChat } = useWs();
   const [isLoading, setLoading] = useState(false);
   const [chatsData, setChatsData] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<string>("");
@@ -35,13 +37,149 @@ export function Home() {
     content: [],
   });
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
-  const ws = useRef<WebSocket | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
 
   const toggleDrawer = (state: boolean) => () => setOpen(state);
+
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    if (!t) {
+      navigate("/login");
+      return;
+    }
+    setToken(t);
+  }, [navigate]);
+
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    if (!token) return;
+    const funcFeacth = async () => {
+      // setLoading(true);
+      try {
+        const resp = await GetChats(token);
+
+        if (resp.data) {
+          setChatsData(resp.data);
+        }
+      } catch (error) {
+        // setLoading(false);
+        console.log(error);
+      }
+    };
+
+    funcFeacth();
+  }, [token]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
+    setLoading(true);
+
+    if (messages.chatId !== selectedChat) {
+      setMessages({
+        chatId: "",
+        content: [],
+      });
+    }
+
+    if (selectedChat) {
+      GetWsChats("", selectedChat);
+    }
+  }, [selectedChat, isConnected, GetWsChats, messages.chatId]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
+    const unsubscribe = subscribe((msg: Message) => {
+      if (msg.chatId === selectedChat && msg.content.length > 0) {
+        setMessages((prev) => ({
+          chatId: msg.chatId,
+          content: [...prev.content, ...msg.content],
+        }));
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [subscribe, selectedChat, isConnected]);
+
+  const sendMsg = () => {
+    setLoading(true);
+
+    if (isConnected) {
+      sendMessage(inputChat, selectedChat);
+
+      setMessages((prev) => ({
+        chatId: selectedChat,
+        content: [...prev.content, ...[{ sender: "user", content: inputChat }]],
+      }));
+
+      setInputChat("");
+    }
+  };
+
+  const handleSelectChat = (chatId: string): void => {
+    setSelectedChat(chatId);
+
+    setMessages({
+      chatId,
+      content: [],
+    });
+  };
+
+  const handleNewChat = async () => {
+    if (!inputChat.trim()) return;
+
+    try {
+      if (!token) return;
+      const resp = await CreateChat(token);
+      if (!resp.data) throw new Error(resp.message);
+      setSelectedChat(resp.data.id);
+
+      setChatsData((prev) => [...(resp.data ? [resp.data] : []), ...prev]);
+
+      setLoading(true);
+      if (isConnected) {
+        NewChat(inputChat, resp.data.id);
+
+        setMessages({
+          chatId: resp.data.id,
+          content: [{ sender: "user", content: inputChat }],
+        });
+
+        setInputChat("");
+      }
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      if (!token) return;
+      const resp = await DeleteChat(token, chatId);
+
+      if (!resp.data) throw new Error(resp.message);
+
+      setChatsData((prevChats) =>
+        prevChats.filter((chat) => chat.id !== chatId)
+      );
+      setSelectedChat("");
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const drawerContent = (
     <Box
@@ -61,12 +199,13 @@ export function Home() {
           width: "100%",
           display: "flex",
           justifyContent: "flex-end",
+          mb: isDesktop ? "46px" : "0",
         }}
       >
         <IconButton
           color="inherit"
           onClick={toggleDrawer(false)}
-          sx={{ display: "block" }}
+          sx={{ display: isDesktop ? "none" : "block" }}
         >
           <MenuIcon />
         </IconButton>
@@ -110,176 +249,6 @@ export function Home() {
       ))}
     </Box>
   );
-
-  useEffect(() => {
-    const t = localStorage.getItem("token");
-    if (!t) {
-      navigate("/login");
-      return;
-    }
-    setToken(t);
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!token) return;
-    const funcFeacth = async () => {
-      // setLoading(true);
-      try {
-        const resp = await GetChats(token);
-
-        if (resp.data) {
-          setChatsData(resp.data);
-        }
-      } catch (error) {
-        // setLoading(false);
-        console.log(error);
-      }
-    };
-
-    funcFeacth();
-  }, [token]);
-
-  useEffect(() => {
-    if (!token) return;
-    setIsConnected(false);
-    ws.current = createWs(token);
-
-    ws.current.onopen = () => {
-      setIsConnected(true);
-      console.log("conectado");
-    };
-
-    ws.current.onclose = () => {
-      setIsConnected(false);
-      console.log("WebSocket desconectado");
-    };
-  }, [token]);
-
-  useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (!selectedChat || ws.current?.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    setLoading(true);
-
-    if (messages.chatId !== selectedChat) {
-      setMessages({
-        chatId: "",
-        content: [],
-      });
-    }
-
-    ws.current.send(
-      JSON.stringify({
-        action: "getHistory",
-        chatId: selectedChat,
-        content: "",
-      })
-    );
-  }, [selectedChat]);
-
-  useEffect(() => {
-    if (ws.current?.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    ws.current.onmessage = (event) => {
-      const message: Message = JSON.parse(event.data);
-
-      if (message.chatId === selectedChat && message.content.length > 0) {
-        setMessages((prev) => ({
-          chatId: prev.chatId,
-          content: [...prev.content, ...message.content],
-        }));
-
-        setLoading(false);
-      }
-    };
-  }, [selectedChat]);
-
-  const sendMessage = () => {
-    setLoading(true);
-    if (ws.current?.readyState === WebSocket.OPEN && selectedChat) {
-      ws.current.send(
-        JSON.stringify({
-          action: "sendMessage",
-          chatId: selectedChat,
-          content: inputChat,
-        })
-      );
-
-      setMessages((prev) => ({
-        chatId: selectedChat,
-        content: [...prev.content, ...[{ sender: "user", content: inputChat }]],
-      }));
-
-      setInputChat("");
-    }
-  };
-
-  const handleSelectChat = (chatId: string): void => {
-    setSelectedChat(chatId);
-
-    setMessages({
-      chatId,
-      content: [],
-    });
-  };
-
-  const handleNewChat = async () => {
-    if (!inputChat.trim()) return;
-
-    try {
-      if (!token) return;
-      const resp = await CreateChat(token);
-      if (!resp.data) throw new Error(resp.message);
-      setSelectedChat(resp.data.id);
-
-      setChatsData((prev) => [...(resp.data ? [resp.data] : []), ...prev]);
-
-      setLoading(true);
-      if (ws.current?.readyState === WebSocket.OPEN && resp.data.id) {
-        setLoading(true);
-        ws.current.send(
-          JSON.stringify({
-            action: "newChat",
-            chatId: resp.data.id,
-            content: inputChat,
-          })
-        );
-
-        setMessages({
-          chatId: resp.data.id,
-          content: [{ sender: "user", content: inputChat }],
-        });
-
-        setInputChat("");
-      }
-    } catch (error) {
-      setLoading(false);
-      console.log(error);
-    }
-  };
-
-  const handleDeleteChat = async (chatId: string) => {
-    try {
-      if (!token) return;
-      const resp = await DeleteChat(token, chatId);
-
-      if (!resp.data) throw new Error(resp.message);
-
-      setChatsData((prevChats) =>
-        prevChats.filter((chat) => chat.id !== chatId)
-      );
-      setSelectedChat("");
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   return (
     <Box
@@ -449,18 +418,29 @@ export function Home() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    sendMessage();
+                    sendMsg();
                   }
                 }}
-                slotProps={{
-                  input: {
-                    sx: {
-                      borderRadius: "35px",
-                      bgcolor: "white",
-                      padding: "16px 16px",
-                      transform: "translate(0, -60%)",
-                    },
+                sx={{
+                  "& .MuiInputBase-root": {
+                    borderRadius: "35px",
+                    bgcolor: "white",
+                    padding: "0 16px",
+                    py: 1.5,
+                    transform: "translate(0, -50%)",
                   },
+                  "& .MuiInputBase-input": {
+                    transform: "translate(0, -10%)",
+                  },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={sendMsg}>
+                        <SearchIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
                 }}
               />
             </Box>
