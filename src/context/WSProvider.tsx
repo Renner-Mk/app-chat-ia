@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createWs } from "../configs/services/http-ws-config";
 import type { Message, WsProp } from "../configs/types";
-import { WSContext } from "./WSContext";
+import { WSContext } from "./WsContext.tsx";
 
 export function WSProvider({ token, children }: WsProp) {
   const [isConnected, setIsConnected] = useState(false);

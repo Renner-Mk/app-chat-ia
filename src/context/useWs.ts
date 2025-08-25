@@ -1,6 +1,6 @@
 // hooks/useWS.ts
 import { useContext, useEffect } from "react";
-import { WSContext } from "./WSContext";
+import { WSContext } from "./WsContext";
 import type { Message } from "../configs/types";
 
 export function useWs(onMessage?: (msg: Message) => void) {
