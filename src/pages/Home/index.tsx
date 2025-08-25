@@ -429,9 +429,6 @@ export function Home() {
                     py: 1.5,
                     transform: "translate(0, -50%)",
                   },
-                  "& .MuiInputBase-input": {
-                    transform: "translate(0, -10%)",
-                  },
                 }}
                 InputProps={{
                   endAdornment: (
