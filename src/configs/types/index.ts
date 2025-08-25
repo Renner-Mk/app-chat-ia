@@ -43,6 +43,5 @@ export interface WSMessage {
   content: string;
 }
 export interface WsProp {
-  token: string;
   children: React.ReactNode;
 }

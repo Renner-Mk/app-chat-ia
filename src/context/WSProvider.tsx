@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { createWs } from "../configs/services/http-ws-config";
 import type { Message, WsProp } from "../configs/types";
-import { WSContext } from "./WsContext.tsx";
+import { useNavigate } from "react-router";
+import { WSContext } from "./WsContext";
 
-export function WSProvider({ token, children }: WsProp) {
+export function WSProvider({ children }: WsProp) {
+  const navigate = useNavigate();
   const [isConnected, setIsConnected] = useState(false);
   const ws = useRef<WebSocket | null>(null);
   const callbacks = useRef<((msg: Message) => void)[]>([]);
 
   useEffect(() => {
-    if (!token) return;
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     ws.current = createWs(token);
 
@@ -41,7 +48,7 @@ export function WSProvider({ token, children }: WsProp) {
         console.log("❌ WS desconectado!");
       }
     };
-  }, [token]);
+  }, [navigate]);
 
   const sendMessage = (msg: string, chatId: string) => {
     if (ws.current?.readyState === WebSocket.OPEN) {
